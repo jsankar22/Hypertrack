@@ -1,0 +1,6 @@
+<nav class="flex gap-1 border-b border-[#e6e8f0]" aria-label="Workout sections">
+    <a href="{% url 'workout_list' %}" class="wk-tab {% if current == 'log' %}wk-tab-active{% endif %}" {% if current == 'log' %}aria-current="page"{% endif %}>Log</a>
+    <a href="{% url 'workout_split' %}" class="wk-tab {% if current == 'splits' %}wk-tab-active{% endif %}" {% if current == 'splits' %}aria-current="page"{% endif %}>Splits</a>
+    <a href="{% url 'workout_history' %}" class="wk-tab {% if current == 'history' %}wk-tab-active{% endif %}" {% if current == 'history' %}aria-current="page"{% endif %}>History</a>
+    <a href="{% url 'workout_progression' %}" class="wk-tab {% if current == 'progression' %}wk-tab-active{% endif %}" {% if current == 'progression' %}aria-current="page"{% endif %}>Progression</a>
+</nav>

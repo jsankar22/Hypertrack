@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Progression | MSc Fitness Assistant{% endblock %}
+{% block content %}
+<div class="p-6 md:p-10 max-w-4xl mx-auto space-y-6">
+    {% include 'workouts/_tabs.html' with current='progression' %}
+    <h1 class="text-2xl font-extrabold text-gray-900">Workout Progression Prediction</h1>
+    {% if not prog.ready %}
+        <div class="bg-white rounded-2xl border border-gray-100 p-6 text-gray-500">{{ prog.message }}</div>
+    {% endif %}
+    {% for p in prog.items %}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-3">
+        <div class="flex justify-between items-start">
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">{{ p.exercise }}</h2>
+                <p class="text-sm text-gray-500">Current: {{ p.current_weight|floatformat:"-2" }} kg × {{ p.current_reps }} reps</p>
+            </div>
+            <span class="text-sm font-bold">{{ p.emoji }} {{ p.headline }}</span>
+        </div>
+        <p class="text-base text-gray-900"><span class="text-gray-500">Next:</span> <strong>{{ p.next_weight|floatformat:"-2" }} kg × {{ p.next_reps }}</strong></p>
+        <ul class="text-sm text-gray-600 list-disc pl-5">{% for r in p.reasons %}<li>{{ r }}</li>{% endfor %}</ul>
+        <div class="text-xs text-gray-400 flex flex-wrap gap-x-4">
+            <span>Days since last workout: {{ p.days_since_last_workout }}</span>
+            <span>Break duration: {{ p.break_duration }}d</span>
+            <span>Trend: {{ p.trend }} ({{ p.trend_pct }}%)</span>
+            <span>Volume trend: {{ p.volume_trend_pct }}%</span>
+            <span>Sessions: {{ p.sessions }}</span>
+            <span>Engine: {{ p.engine }}</span>
+            {% if p.confidence %}<span>AI confidence: {{ p.confidence }}%</span>{% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

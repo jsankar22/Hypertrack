@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block title %}Workout Log | HYPERTRACK{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="/static/css/workouts.css">
+{% endblock %}
+
+{% block content %}
+<div class="wk-page">
+<div class="p-5 md:p-8 max-w-6xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Workout Log</h1>
+            <p class="text-sm text-gray-500 mt-1">Log your daily workouts and track your progress</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="wk-card inline-flex items-center gap-2 px-4 py-2 text-sm font-medium">
+                <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z"/></svg>
+                {{ date|date:"M d, Y" }}
+            </span>
+            <a href="{% url 'workout_split' %}" class="wk-btn wk-btn-primary">+ Create Splits</a>
+        </div>
+    </div>
+
+    {% include 'workouts/_tabs.html' with current='log' %}
+    {% include 'workouts/_messages.html' %}
+
+    <!-- Selectors -->
+    <div class="wk-card p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+            <label class="wk-label" for="days-select">No. of Working Days</label>
+            <select id="days-select" class="wk-input" data-prev="{{ split.days_per_week|default:'' }}">
+                {% if not split %}<option value="" selected>Select days…</option>{% endif %}
+                {% for n in day_options %}
+                <option value="{{ n }}" {% if split and split.days_per_week == n %}selected{% endif %}>{{ n }} Day{{ n|pluralize }} / Week</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="wk-label" for="date-input">Date</label>
+            <input type="date" id="date-input" class="wk-input" value="{{ date|date:'Y-m-d' }}">
+        </div>
+        <div>
+            <label class="wk-label" for="day-select">Day (Today's Workout)</label>
+            <select id="day-select" class="wk-input">
+                {% for d in days %}
+                <option value="{{ d.id }}" {% if selected_day and d.id == selected_day.id %}selected{% endif %}>{{ d.label }}</option>
+                {% endfor %}
+                <option value="custom" {% if custom %}selected{% endif %}>Custom workout</option>
+            </select>
+        </div>
+    </div>
+
+    <form id="days-form" method="post" action="{% url 'workout_split_generate' %}" hidden>
+        {% csrf_token %}
+        <input type="hidden" name="days_per_week" id="days-form-value">
+        <input type="hidden" name="next" value="log">
+    </form>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+        <!-- Left: overview + exercises -->
+        <section class="wk-card p-5 md:p-6 lg:col-span-2" aria-labelledby="overview-title">
+            <div class="flex items-center gap-3 mb-5">
+                <span class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-500 inline-flex items-center justify-center" aria-hidden="true">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                </span>
+                <h2 id="overview-title" class="text-lg font-bold text-gray-900">{% if date == today %}Today's{% else %}{{ date|date:"M j" }}{% endif %} Workout Overview</h2>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                <div class="rounded-xl bg-emerald-50 p-4">
+                    <label for="stat-duration" class="block text-xs font-semibold text-emerald-700">Duration</label>
+                    <div class="flex items-baseline gap-1 mt-1">
+                        <input id="stat-duration" type="number" min="0" max="1440" inputmode="numeric" class="w-16 bg-transparent text-2xl font-extrabold text-emerald-900 border-0 border-b border-dashed border-emerald-300 p-0 focus:ring-0 focus:outline-none focus:border-emerald-600" value="0" aria-describedby="duration-hint">
+                        <span class="text-sm font-semibold text-emerald-800">min</span>
+                    </div>
+                    <p id="duration-hint" class="text-[11px] text-emerald-700/80 mt-1">Estimated. Edit if needed.</p>
+                </div>
+                <div class="rounded-xl bg-orange-50 p-4">
+                    <span class="block text-xs font-semibold text-orange-700">Calories</span>
+                    <p class="mt-1"><span id="stat-calories" class="text-2xl font-extrabold text-orange-900">0</span> <span class="text-sm font-semibold text-orange-800">kcal</span></p>
+                    <p class="text-[11px] text-orange-700/80 mt-1">Estimate from duration and body weight.</p>
+                </div>
+                <div class="rounded-xl bg-indigo-50 p-4">
+                    <span class="block text-xs font-semibold text-indigo-700">Exercises</span>
+                    <p id="stat-count" class="text-2xl font-extrabold text-indigo-900 mt-1">0</p>
+                </div>
+            </div>
+
+            <!-- Exercises -->
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-base font-bold text-gray-900">Exercises</h3>
+                <button type="button" id="add-ex" class="wk-btn wk-btn-primary">+ Add Exercise</button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="wk-table w-full">
+                    <thead>
+                        <tr>
+                            <th class="w-8">#</th>
+                            <th>Exercise</th>
+                            <th class="w-14">Sets</th>
+                            <th>Set Details <span class="font-normal text-gray-400">(Reps @ Weight kg)</span></th>
+                            <th class="hidden sm:table-cell w-16">Rest</th>
+                            <th class="w-24 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ex-body"></tbody>
+                </table>
+            </div>
+
+            <p id="save-error" class="hidden mt-4 p-3 rounded-xl bg-red-50 text-red-700 text-sm font-medium" role="alert"></p>
+            <button type="button" id="save-btn" class="wk-btn wk-btn-primary wk-btn-lg w-full mt-5">Save Workout</button>
+            <p class="text-xs text-gray-400 mt-2 text-center">Exercises without any sets are not saved.</p>
+        </section>
+
+        <!-- Right: day, split, notes -->
+        <div class="space-y-6">
+            <section class="wk-card p-5">
+                <div class="flex items-center gap-3">
+                    <span class="w-9 h-9 rounded-lg bg-amber-50 text-amber-500 inline-flex items-center justify-center" aria-hidden="true">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5a2 2 0 011.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
+                    </span>
+                    <h2 class="text-base font-bold text-gray-900">Current Day: <span class="ml-1">{% if selected_day %}{{ selected_day.label }}{% else %}Custom workout{% endif %}</span></h2>
+                </div>
+                <p class="text-xs text-gray-500 mt-4 mb-2">Muscle Focus</p>
+                <div class="flex flex-wrap gap-2">
+                    {% for g in focus %}<span class="wk-chip">{{ g }}</span>{% empty %}<span class="text-sm text-gray-400">{% if selected_day %}Add exercises to see the muscle focus.{% else %}Pick a split day to see its focus.{% endif %}</span>{% endfor %}
+                </div>
+            </section>
+
+            <section class="wk-card p-5">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <div class="flex items-center gap-3">
+                        <span class="w-9 h-9 rounded-lg bg-yellow-50 text-yellow-500 inline-flex items-center justify-center" aria-hidden="true">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+                        </span>
+                        <h2 class="text-base font-bold text-gray-900">Your Split</h2>
+                    </div>
+                    {% if selected_day %}
+                    <a href="{% url 'workout_split_day_edit' selected_day.id %}" class="wk-btn wk-btn-ghost wk-btn-sm">Edit</a>
+                    {% endif %}
+                </div>
+                {% if plan %}
+                <ol class="divide-y divide-dashed divide-gray-200">
+                    {% for ex in plan %}
+                    <li class="flex gap-3 py-2 text-sm text-gray-800"><span class="w-4 font-bold text-[#2f55e0]">{{ forloop.counter }}.</span>{{ ex.exercise }}</li>
+                    {% endfor %}
+                </ol>
+                {% else %}
+                <p class="text-sm text-gray-500 py-2">{% if split %}This day has no planned exercises yet.{% else %}No split yet. Pick your training days above to generate one, or add exercises manually.{% endif %}</p>
+                {% endif %}
+                <div class="text-right mt-3">
+                    <a href="{% url 'workout_split' %}" class="text-sm font-semibold text-[#2f55e0] hover:underline">View All Splits →</a>
+                </div>
+            </section>
+
+            <section class="wk-card p-5">
+                <label for="notes" class="flex items-center gap-3 text-base font-bold text-gray-900 mb-3">
+                    <span class="w-9 h-9 rounded-lg bg-rose-50 text-rose-500 inline-flex items-center justify-center" aria-hidden="true">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </span>
+                    Notes
+                </label>
+                <textarea id="notes" rows="4" maxlength="2000" class="wk-input" placeholder="How was your workout? Any notes for today…"></textarea>
+            </section>
+        </div>
+    </div>
+</div>
+</div>
+
+{% include 'workouts/_exercise_modal.html' %}
+
+{{ state|json_script:"log-state" }}
+<script src="/static/js/workout_log.js"></script>
+{% endblock %}

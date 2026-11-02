@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}My Splits | MSc Fitness Assistant{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="/static/css/workouts.css">
+{% endblock %}
+
+{% block content %}
+<div class="wk-page">
+<div class="p-5 md:p-8 max-w-6xl mx-auto space-y-6">
+
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">My Splits</h1>
+            <p class="text-sm text-gray-500 mt-1">Create and manage your workout day templates</p>
+        </div>
+        <a href="{% url 'workout_split_day_add' %}" class="wk-btn wk-btn-primary">+ New Split Day</a>
+    </div>
+
+    {% include 'workouts/_tabs.html' with current='splits' %}
+    {% include 'workouts/_messages.html' %}
+
+    {% if days %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {% for day in days %}
+        <article class="wk-card p-5 flex flex-col">
+            <h2 class="text-base font-bold text-gray-900">{{ day.label }}</h2>
+            {% if day.focus_list %}<p class="text-xs text-gray-500 mt-0.5">{{ day.focus_list|join:" • " }}</p>{% endif %}
+
+            {% if day.exercises.all %}
+            <ol class="mt-3 flex-1 divide-y divide-dashed divide-gray-200">
+                {% for ex in day.exercises.all %}
+                <li class="flex items-baseline gap-3 py-2 text-sm text-gray-800">
+                    <span class="w-4 font-bold text-[#2f55e0]">{{ forloop.counter }}.</span>
+                    <span class="flex-1">{{ ex.exercise }}</span>
+                    <span class="text-xs text-gray-400">{{ ex.target_sets }}×{{ ex.target_reps }}</span>
+                </li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <p class="mt-3 flex-1 text-sm text-gray-400">No exercises planned yet.</p>
+            {% endif %}
+
+            <div class="flex items-center gap-2 mt-4">
+                <a href="{% url 'workout_split_day_edit' day.id %}" class="wk-btn wk-btn-ghost wk-btn-sm">Edit</a>
+                <form method="post" action="{% url 'workout_split_day_delete' day.id %}" onsubmit="return confirm('Delete {{ day.label|escapejs }}? Saved workouts stay in your history.');">
+                    {% csrf_token %}
+                    <button type="submit" class="wk-btn wk-btn-danger wk-btn-sm">Delete</button>
+                </form>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="wk-card py-14 px-6 text-center">
+        <h2 class="text-lg font-bold text-gray-900">No split yet</h2>
+        <p class="text-sm text-gray-500 mt-1 max-w-md mx-auto">Generate a suggested split below, or build your own with “New Split Day”.</p>
+    </div>
+    {% endif %}
+
+    <!-- Suggested split generator -->
+    <section class="wk-card p-5">
+        <h2 class="text-base font-bold text-gray-900">Suggest a split</h2>
+        <p class="text-sm text-gray-500 mt-1">Pick how many days you train and we'll set up a starting split you can edit.{% if split %} This replaces your current days.{% endif %}</p>
+        <form method="post" action="{% url 'workout_split_generate' %}" class="mt-4 flex flex-wrap items-end gap-3" {% if split %}onsubmit="return confirm('Replace your current split with a suggested one?');"{% endif %}>
+            {% csrf_token %}
+            <input type="hidden" name="next" value="splits">
+            <div>
+                <label class="wk-label" for="gen-days">Training days per week</label>
+                <select id="gen-days" name="days_per_week" class="wk-input">
+                    {% for n in day_options %}<option value="{{ n }}" {% if split and split.days_per_week == n or not split and n == 5 %}selected{% endif %}>{{ n }} Day{{ n|pluralize }} / Week</option>{% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="wk-btn wk-btn-ghost">{% if split %}Regenerate split{% else %}Generate split{% endif %}</button>
+        </form>
+        {% if split %}
+        <form method="post" action="{% url 'workout_split_reset' %}" class="mt-4 pt-4 border-t border-[#e6e8f0]" onsubmit="return confirm('Delete your entire split? This cannot be undone.');">
+            {% csrf_token %}
+            <button type="submit" class="text-sm font-semibold text-red-600 hover:underline">Delete entire split</button>
+        </form>
+        {% endif %}
+    </section>
+</div>
+</div>
+{% endblock %}

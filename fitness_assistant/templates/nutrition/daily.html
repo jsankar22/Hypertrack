@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% load nutrition_tags %}
+
+{% block title %}Nutrition Tracker | HYPERTRACK {% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-7xl mx-auto space-y-8">
+    
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Nutrition Tracker</h1>
+            <p class="text-gray-500 mt-1">Track calories, manage meal portion macros, and overview trends.</p>
+        </div>
+        
+        <!-- Date Selector -->
+        <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm self-start md:self-auto">
+            <a href="?date={{ prev_date|date:'Y-m-d' }}" class="p-1.5 hover:bg-gray-50 rounded-lg text-gray-500">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/>
+                </svg>
+            </a>
+            <span class="text-sm font-semibold text-gray-800">{{ active_date|date:"F d, Y" }}</span>
+            <a href="?date={{ next_date|date:'Y-m-d' }}" class="p-1.5 hover:bg-gray-50 rounded-lg text-gray-500">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                </svg>
+            </a>
+        </div>
+    </div>
+
+    <!-- Live Search & Calorie targets -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Targets & Macro Breakdown (Left Column) -->
+        <div class="space-y-6">
+            <!-- Calorie Card -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
+                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Calories Consumption</h3>
+                <div class="flex justify-between items-baseline">
+                    <span class="text-3xl font-extrabold text-gray-900">{{ total_calories }}</span>
+                    <span class="text-sm font-medium text-gray-500">/ {{ caloric_goal }} kcal</span>
+                </div>
+                <!-- Progress Bar -->
+                <div class="w-full bg-gray-100 rounded-full h-3">
+                    <div class="bg-blue-600 h-3 rounded-full transition-all duration-300" style="width: {{ calorie_percent }}%"></div>
+                </div>
+                <div class="flex justify-between items-center text-xs text-gray-500">
+                    <span>Eaten</span>
+                    <span>{{ calorie_percent }}%</span>
+                </div>
+            </div>
+
+            <!-- Macros Cards -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
+                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Daily Macronutrients</h3>
+                
+                <!-- Protein Progress -->
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-semibold text-gray-700">
+                        <span>Protein</span>
+                        <span>{{ total_protein|floatformat:1 }}g / {{ protein_goal }}g</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2">
+                        <div class="bg-emerald-500 h-2 rounded-full" style="width: {{ protein_percent }}%"></div>
+                    </div>
+                </div>
+
+                <!-- Carbs Progress -->
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-semibold text-gray-700">
+                        <span>Carbs</span>
+                        <span>{{ total_carbs|floatformat:1 }}g / {{ carbs_goal }}g</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2">
+                        <div class="bg-amber-500 h-2 rounded-full" style="width: {{ carbs_percent }}%"></div>
+                    </div>
+                </div>
+
+                <!-- Fats Progress -->
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-semibold text-gray-700">
+                        <span>Fats</span>
+                        <span>{{ total_fats|floatformat:1 }}g / {{ fats_goal }}g</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2">
+                        <div class="bg-rose-500 h-2 rounded-full" style="width: {{ fats_percent }}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7-day Trend Chart -->
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider">7-Day Trend Chart</h4>
+                <div class="relative w-full h-44">
+                    <canvas id="nutritionTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meal logs and food search (Right Column, takes 2 spans) -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Live Search Bar -->
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                <h3 class="text-lg font-bold text-gray-950">Add Food Item</h3>
+                <div class="relative">
+                    <input type="text" id="foodSearchInput" placeholder="Search foods (e.g. Chicken, egg, brown rice)..." class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-950">
+                    <div id="searchSpinner" class="hidden absolute right-4 top-3.5">
+                        <svg class="animate-spin h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Search Results Area -->
+                <div id="searchResults" class="hidden border border-gray-100 rounded-xl max-h-80 overflow-y-auto divide-y divide-gray-100 bg-gray-50"></div>
+            </div>
+
+            <!-- Meal Grouped Logs -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
+                {% for key, meals in grouped_meals.items %}
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-base font-bold text-gray-950 capitalize">{{ key }}</h4>
+                        <span class="text-xs font-semibold text-gray-500">
+                            {% sum_calories meals as meal_cals %}{{ meal_cals }} kcal
+                        </span>
+                    </div>
+
+                    {% if meals %}
+                    <div class="space-y-3">
+                        {% for meal in meals %}
+                        <div class="flex justify-between items-center p-3 rounded-xl border border-gray-50 bg-gray-50/50 hover:bg-gray-50 transition duration-150">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">{{ meal.food_name }}</p>
+                                <p class="text-xs text-gray-400 mt-0.5">
+                                    Protein: {{ meal.protein_g|floatformat:1 }}g &bull; Carbs: {{ meal.carbs_g|floatformat:1 }}g &bull; Fats: {{ meal.fats_g|floatformat:1 }}g
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-bold text-gray-800">{{ meal.calories }} kcal</span>
+                                <form method="POST" action="{% url 'nutrition_delete' meal.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition hover:bg-red-50">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <!-- Empty section helper -->
+                    <p class="text-xs text-gray-400 italic">No food logged for this meal.</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal Container for Logging Portion Weight -->
+<div id="portionModal" class="hidden fixed inset-0 z-50 bg-[#07070d]/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full border border-gray-100 shadow-2xl p-6 space-y-6">
+        <div>
+            <h4 id="modalFoodName" class="text-lg font-bold text-gray-900">Food Name</h4>
+            <p class="text-xs text-gray-400 mt-0.5">Macro profile per 100g: <span id="modalMacroInfo"></span></p>
+        </div>
+
+        <form id="modalLogForm" method="POST" action="{% url 'nutrition_log_add' %}" class="space-y-4">
+            {% csrf_token %}
+            <!-- Hidden inputs to submit values -->
+            <input type="hidden" name="food_name" id="hidden_food_name">
+            <input type="hidden" name="calories_per_100g" id="hidden_calories">
+            <input type="hidden" name="protein_per_100g" id="hidden_protein">
+            <input type="hidden" name="carbs_per_100g" id="hidden_carbs">
+            <input type="hidden" name="fats_per_100g" id="hidden_fats">
+            <input type="hidden" name="date" value="{{ active_date|date:'Y-m-d' }}">
+
+            <!-- Meal Type Selector -->
+            <div>
+                <label for="modal_meal_type" class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Meal Period</label>
+                <select name="meal_type" id="modal_meal_type" class="block w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-950 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <option value="breakfast">Breakfast</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="dinner">Dinner</option>
+                    <option value="snack">Snack</option>
+                </select>
+            </div>
+
+            <!-- Portion weight in grams -->
+            <div>
+                <label for="modal_portion" class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Portion Size (grams)</label>
+                <input type="number" name="portion_grams" id="modal_portion" value="100" min="1" class="block w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-950 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+
+            <!-- Dynamic macro scale previews -->
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 grid grid-cols-4 gap-2 text-center">
+                <div>
+                    <span id="scaledCals" class="text-sm font-bold text-gray-900">0</span>
+                    <span class="text-[9px] text-gray-400 uppercase font-bold tracking-wider block">kcal</span>
+                </div>
+                <div>
+                    <span id="scaledProtein" class="text-sm font-bold text-gray-900">0g</span>
+                    <span class="text-[9px] text-gray-400 uppercase font-bold tracking-wider block">Protein</span>
+                </div>
+                <div>
+                    <span id="scaledCarbs" class="text-sm font-bold text-gray-900">0g</span>
+                    <span class="text-[9px] text-gray-400 uppercase font-bold tracking-wider block">Carbs</span>
+                </div>
+                <div>
+                    <span id="scaledFats" class="text-sm font-bold text-gray-900">0g</span>
+                    <span class="text-[9px] text-gray-400 uppercase font-bold tracking-wider block">Fats</span>
+                </div>
+            </div>
+
+            <!-- Submit actions -->
+            <div class="flex justify-end gap-2.5 pt-2 border-t border-gray-100">
+                <button type="button" id="closePortionModal" class="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition font-semibold">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition">
+                    Log Portion
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Load Custom JS -->
+<script src="/static/js/nutrition_search.js"></script>
+<script src="/static/js/charts.js"></script>
+{% endblock %}

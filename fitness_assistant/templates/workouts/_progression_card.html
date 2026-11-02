@@ -1,0 +1,25 @@
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+    <div class="flex justify-between items-center">
+        <h3 class="text-lg font-bold text-gray-900">Next Week's Progression</h3>
+        <a href="{% url 'workout_progression' %}" class="text-xs font-semibold text-blue-500 hover:underline">Details</a>
+    </div>
+    {% if prog.ready %}
+    <div class="divide-y divide-gray-100">
+        {% for p in prog.items %}
+        <div class="py-3.5 flex justify-between items-center gap-3">
+            <div>
+                <p class="text-sm font-semibold text-gray-900">{{ p.exercise }}</p>
+                <p class="text-xs text-gray-400">Current: {{ p.current_weight|floatformat:"-2" }} kg × {{ p.current_reps }} reps</p>
+                {% if p.on_break %}<p class="text-[11px] text-amber-600">{{ p.days_since_last_workout }}-day break · resume &amp; re-check</p>{% endif %}
+            </div>
+            <div class="text-right">
+                <p class="text-sm font-bold text-gray-800">{{ p.next_weight|floatformat:"-2" }} kg × {{ p.next_reps }}</p>
+                <p class="text-xs font-semibold {% if p.recommendation == 'PUSH' %}text-green-600{% elif p.recommendation == 'MAINTAIN' %}text-yellow-600{% else %}text-red-600{% endif %}">{{ p.emoji }} {{ p.headline }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-500 py-4">{{ prog.message }}</p>
+    {% endif %}
+</div>

@@ -1,0 +1,43 @@
+<div id="ex-modal" class="wk-backdrop" hidden>
+    <div class="wk-modal" role="dialog" aria-modal="true" aria-labelledby="ex-modal-title">
+        <form id="m-form" novalidate>
+            <h2 id="ex-modal-title" class="text-lg font-bold text-gray-900 mb-4">Add Exercise</h2>
+
+            <div>
+                <label class="wk-label" for="m-name">Exercise Name</label>
+                <input id="m-name" type="text" class="wk-input" list="lib-list" maxlength="50" autocomplete="off" placeholder="e.g. Barbell Bench Press">
+                <datalist id="lib-list"></datalist>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mt-4">
+                <div>
+                    <label class="wk-label" for="m-sets">Sets</label>
+                    <input id="m-sets" type="number" min="0" max="20" inputmode="numeric" class="wk-input" placeholder="e.g. 3">
+                </div>
+                <div>
+                    <label class="wk-label" for="m-rest">Rest (sec)</label>
+                    <input id="m-rest" type="number" min="0" max="3600" inputmode="numeric" class="wk-input" placeholder="e.g. 90 sec">
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <p class="wk-label">Set Details <span class="text-gray-400">(reps &amp; weight per set)</span></p>
+                <p id="m-hint" class="text-xs text-gray-500">Enter number of sets above to fill details.</p>
+                <div id="m-rows" class="space-y-2"></div>
+            </div>
+
+            <div class="mt-4">
+                <label class="wk-label" for="m-group">Muscle Group <span class="text-gray-400">(for new exercises)</span></label>
+                <input id="m-group" type="text" class="wk-input" list="group-list" maxlength="50" autocomplete="off" placeholder="e.g. Chest">
+                <datalist id="group-list"></datalist>
+            </div>
+
+            <p id="m-error" class="mt-3 text-sm font-medium text-red-600" role="alert" hidden></p>
+
+            <div class="flex justify-end gap-2 mt-6">
+                <button type="button" id="m-cancel" class="wk-btn wk-btn-ghost">Cancel</button>
+                <button type="submit" class="wk-btn wk-btn-primary">Save Exercise</button>
+            </div>
+        </form>
+    </div>
+</div>
